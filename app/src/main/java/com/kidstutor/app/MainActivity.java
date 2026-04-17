@@ -125,7 +125,8 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public boolean isSttSupported() {
-            return SpeechRecognizer.isRecognitionAvailable(MainActivity.this);
+            // Always return true — let startListening attempt and report real errors via onSpeechError
+            return true;
         }
     }
 

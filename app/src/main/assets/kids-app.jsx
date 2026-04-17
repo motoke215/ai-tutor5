@@ -525,11 +525,7 @@ export default function App() {
 
   const startListening = () => {
     if (window.AndroidTutor) {
-      // Check if STT is supported first
-      if (!window.AndroidTutor.isSttSupported()) {
-        alert("当前设备不支持语音识别");
-        return;
-      }
+      // Skip pre-check — let startListening attempt directly and report any errors via onSpeechError
       window.AndroidTutor.startListening("zh-CN");
     }
   };
