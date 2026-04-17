@@ -41,6 +41,8 @@ public class MainActivity extends Activity {
     private String currentLang = "zh-CN";
 
     private static final int PERMISSION_REQUEST_CODE = 100;
+    private String pendingAction = null;
+    private String pendingLang = "zh-CN";
 
     // ── JavaScript Bridge ────────────────────────────────────────────────────
     private class AndroidBridge {
@@ -48,10 +50,12 @@ public class MainActivity extends Activity {
         /** Called by JS to speak text via native TTS */
         @JavascriptInterface
         public void speak(String text, String lang) {
-            if (!ttsReady) return;
+            if (!ttsReady) {
+                notifyJS("onTtsError", "TTS未就绪");
+                return;
+            }
             currentLang = lang;
             mainHandler.post(() -> {
-                // Set language
                 Locale locale = langToLocale(lang);
                 int result = tts.setLanguage(locale);
                 if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
@@ -84,11 +88,15 @@ public class MainActivity extends Activity {
         public void startListening(String lang) {
             currentLang = lang;
             mainHandler.post(() -> {
-                if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                // 直接检查系统权限，不依赖缓存
+                if (!hasAudioPermission()) {
+                    pendingAction = "startListening";
+                    pendingLang = lang;
                     requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_REQUEST_CODE);
-                    notifyJS("onSpeechError", "需要麦克风权限");
+                    // 不要在这里显示错误！等用户响应权限对话框后再处理
                     return;
                 }
+                // 权限已授权，直接开始录音
                 startSpeechRecognition(lang);
             });
         }
@@ -178,72 +186,100 @@ public class MainActivity extends Activity {
     }
 
     // ── Speech Recognition ───────────────────────────────────────────────────
+    private boolean hasAudioPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return true;
+        }
+        return checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+    }
+
     private void startSpeechRecognition(String lang) {
         if (speechRecognizer != null) {
             speechRecognizer.destroy();
+            speechRecognizer = null;
         }
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
-        speechRecognizer.setRecognitionListener(new RecognitionListener() {
-            @Override
-            public void onReadyForSpeech(Bundle params) {
-                notifyJS("onSpeechReady", "");
-            }
-            @Override
-            public void onBeginningOfSpeech() {
-                notifyJS("onSpeechStart", "");
-            }
-            @Override
-            public void onRmsChanged(float rmsdB) {
-                // Send volume level for visual feedback
-                notifyJS("onSpeechVolume", String.valueOf((int)Math.max(0, Math.min(100, (rmsdB + 2) * 8))));
-            }
-            @Override
-            public void onEndOfSpeech() {
-                notifyJS("onSpeechEnd", "");
-            }
-            @Override
-            public void onError(int error) {
-                String msg;
-                switch (error) {
-                    case SpeechRecognizer.ERROR_NO_MATCH: msg = "没有识别到语音"; break;
-                    case SpeechRecognizer.ERROR_SPEECH_TIMEOUT: msg = "语音超时"; break;
-                    case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS: msg = "需要麦克风权限"; break;
-                    case SpeechRecognizer.ERROR_NETWORK: msg = "网络错误"; break;
-                    default: msg = "识别错误(" + error + ")";
-                }
-                notifyJS("onSpeechError", msg);
-            }
-            @Override
-            public void onResults(Bundle results) {
-                ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                if (matches != null && !matches.isEmpty()) {
-                    notifyJS("onSpeechResult", matches.get(0));
-                } else {
-                    notifyJS("onSpeechError", "未识别到内容");
-                }
-            }
-            @Override
-            public void onPartialResults(Bundle partialResults) {
-                ArrayList<String> partial = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                if (partial != null && !partial.isEmpty()) {
-                    notifyJS("onSpeechPartial", partial.get(0));
-                }
-            }
-            @Override public void onBufferReceived(byte[] buffer) {}
-            @Override public void onEvent(int eventType, Bundle params) {}
-        });
 
-        Intent recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, langToLocale(lang).toString());
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, langToLocale(lang).toString());
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, true);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 500L);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L);
+        // 再次检查权限（双重检查）
+        if (!hasAudioPermission()) {
+            pendingAction = "startListening";
+            pendingLang = lang;
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_REQUEST_CODE);
+            return;
+        }
 
         try {
+            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+            if (speechRecognizer == null) {
+                notifyJS("onSpeechError", "语音识别不可用");
+                return;
+            }
+
+            speechRecognizer.setRecognitionListener(new RecognitionListener() {
+                @Override
+                public void onReadyForSpeech(Bundle params) {
+                    notifyJS("onSpeechReady", "");
+                }
+                @Override
+                public void onBeginningOfSpeech() {
+                    notifyJS("onSpeechStart", "");
+                }
+                @Override
+                public void onRmsChanged(float rmsdB) {
+                    notifyJS("onSpeechVolume", String.valueOf((int)Math.max(0, Math.min(100, (rmsdB + 2) * 8))));
+                }
+                @Override
+                public void onEndOfSpeech() {
+                    notifyJS("onSpeechEnd", "");
+                }
+                @Override
+                public void onError(int error) {
+                    String msg;
+                    switch (error) {
+                        case SpeechRecognizer.ERROR_NO_MATCH: msg = "没有识别到语音"; break;
+                        case SpeechRecognizer.ERROR_SPEECH_TIMEOUT: msg = "语音超时"; break;
+                        case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
+                            // 权限不足，但已经在startListening中检查过了
+                            msg = "麦克风权限被拒绝，请在设置中开启";
+                            break;
+                        case SpeechRecognizer.ERROR_NETWORK: msg = "网络错误，请检查网络"; break;
+                        case SpeechRecognizer.ERROR_AUDIO: msg = "音频错误，请重启应用"; break;
+                        case SpeechRecognizer.ERROR_CLIENT: msg = "客户端错误"; break;
+                        case SpeechRecognizer.ERROR_RECOGNIZER_BUSY: msg = "语音服务忙碌，请重试"; break;
+                        case SpeechRecognizer.ERROR_SERVER: msg = "服务器错误"; break;
+                        default: msg = "识别错误(" + error + ")";
+                    }
+                    notifyJS("onSpeechError", msg);
+                }
+                @Override
+                public void onResults(Bundle results) {
+                    ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                    if (matches != null && !matches.isEmpty()) {
+                        notifyJS("onSpeechResult", matches.get(0));
+                    } else {
+                        notifyJS("onSpeechError", "未识别到内容");
+                    }
+                }
+                @Override
+                public void onPartialResults(Bundle partialResults) {
+                    ArrayList<String> partial = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                    if (partial != null && !partial.isEmpty()) {
+                        notifyJS("onSpeechPartial", partial.get(0));
+                    }
+                }
+                @Override public void onBufferReceived(byte[] buffer) {}
+                @Override public void onEvent(int eventType, Bundle params) {}
+            });
+
+            Intent recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, langToLocale(lang).toString());
+            recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, langToLocale(lang).toString());
+            recognizerIntent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, true);
+            recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+            recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+            recognizerIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 500L);
+            recognizerIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L);
+
             speechRecognizer.startListening(recognizerIntent);
         } catch (Exception e) {
             notifyJS("onSpeechError", "启动失败: " + e.getMessage());
@@ -276,12 +312,35 @@ public class MainActivity extends Activity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // 权限授予了，通知JS
                 notifyJS("onPermissionGranted", "audio");
+                // 如果有pending的action，执行它
+                if ("startListening".equals(pendingAction)) {
+                    pendingAction = null;
+                    startSpeechRecognition(pendingLang);
+                }
             } else {
-                Toast.makeText(this, "需要麦克风权限才能使用语音功能", Toast.LENGTH_LONG).show();
+                // 权限被拒绝
+                Toast.makeText(this, "麦克风权限被拒绝，请在设置中开启", Toast.LENGTH_LONG).show();
+                notifyJS("onPermissionDenied", "audio");
+                pendingAction = null;
             }
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // APP从后台回来时，通知JS检查权限状态
+        if (webView != null && hasAudioPermission()) {
+            webView.post(() -> {
+                if (webView != null) {
+                    webView.evaluateJavascript("if(window.onPermissionGranted)window.onPermissionGranted();", null);
+                }
+            });
         }
     }
 
