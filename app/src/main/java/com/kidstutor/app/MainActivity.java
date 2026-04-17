@@ -334,6 +334,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        webView.onResume();
         // APP从后台回来时，通知JS检查权限状态
         if (webView != null && hasAudioPermission()) {
             webView.post(() -> {
@@ -356,12 +357,6 @@ public class MainActivity extends Activity {
         webView.onPause();
         if (tts != null) tts.stop();
         if (speechRecognizer != null) speechRecognizer.stopListening();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        webView.onResume();
     }
 
     @Override
