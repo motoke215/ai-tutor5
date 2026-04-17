@@ -369,8 +369,18 @@ export default function App() {
   const recognitionRef = useRef(null);
   const synthRef = useRef(null);
 
+  // Setup AndroidTutor TTS callbacks
   useEffect(() => {
-    if ("speechSynthesis" in window) synthRef.current = window.speechSynthesis;
+    window.onTtsReady = () => { synthRef.current = { ready: true }; };
+    window.onTtsStarted = () => { setTalking(true); };
+    window.onTtsStopped = () => { setTalking(false); };
+    window.onTtsError = () => { setTalking(false); };
+    return () => {
+      window.onTtsReady = null;
+      window.onTtsStarted = null;
+      window.onTtsStopped = null;
+      window.onTtsError = null;
+    };
   }, []);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
@@ -388,14 +398,9 @@ export default function App() {
 
   // ── Speak (web, fallback) ──────────────────────────────────────────────
   const speak = (text) => {
-    if (!synthRef.current) return;
-    synthRef.current.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "zh-CN"; u.rate = 0.88; u.pitch = 1.15;
-    u.onstart = () => setTalking(true);
-    u.onend = () => setTalking(false);
-    u.onerror = () => setTalking(false);
-    synthRef.current.speak(u);
+    if (window.AndroidTutor) {
+      window.AndroidTutor.speak(text, "zh-CN");
+    }
   };
 
   // ── Call AI ────────────────────────────────────────────────────────────
@@ -404,18 +409,22 @@ export default function App() {
     setMood("thinking");
     try {
       const msgs = [...history, { role: "user", content: userMsg }];
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      // Use MiniMax API (replace API_KEY with your key)
+      const res = await fetch("https://api.minimax.chat/v1/text/chatcompletion_v2?GroupId=" + "YOUR_GROUP_ID", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + "YOUR_MINIMAX_API_KEY"
+        },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "abab6.5s-chat",
           max_tokens: 500,
-          system: systemRef.current,
-          messages: msgs,
+          temperature: 0.8,
+          messages: [{ role: "system", content: systemRef.current }, ...msgs],
         }),
       });
       const data = await res.json();
-      const raw = data.content?.[0]?.text || "{}";
+      const raw = data.choices?.[0]?.message?.content || "{}";
       const parsed = parseResp(raw);
       const newMastery = Math.max(0, Math.min(100, parsed.currentMastery ?? (mastery + (parsed.masteryDelta || 0))));
 
@@ -464,30 +473,75 @@ export default function App() {
     await callAI(msg, apiHistory);
   };
 
-  // ── Voice input ────────────────────────────────────────────────────────
-  const startListening = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
-    const rec = new SR();
-    rec.lang = "zh-CN"; rec.continuous = false; rec.interimResults = true;
-    rec.onresult = (e) => {
-      const t = Array.from(e.results).map(r => r[0].transcript).join("");
-      setPartialText(t);
-      setInput(t);
+  // ── Voice input — use Android native SpeechRecognizer via AndroidTutor bridge ──
+  // Expose global callbacks for AndroidTutor to call
+  useEffect(() => {
+    window.onSpeechResult = (text) => {
+      setPartialText("");
+      setInput(text);
+      setIsListening(false);
     };
-    rec.onend = () => { setIsListening(false); };
-    rec.onerror = () => { setIsListening(false); };
-    recognitionRef.current = rec;
-    rec.start();
-    setIsListening(true);
+    window.onSpeechPartial = (text) => {
+      setPartialText(text);
+      setInput(text);
+    };
+    window.onSpeechError = (msg) => {
+      setIsListening(false);
+      setPartialText("");
+    };
+    window.onSpeechEnd = () => {
+      setIsListening(false);
+    };
+    window.onSpeechStart = () => {
+      setIsListening(true);
+    };
+    window.onSpeechReady = () => {
+      setIsListening(true);
+    };
+    window.onPermissionGranted = () => {
+      // Retry listening after permission granted
+    };
+    window.onPermissionDenied = () => {
+      setIsListening(false);
+    };
+    // Check native STT support
+    window.onSttSupportCheck = (supported) => {
+      if (!supported) {
+        alert("当前设备不支持语音识别");
+      }
+    };
+    return () => {
+      window.onSpeechResult = null;
+      window.onSpeechPartial = null;
+      window.onSpeechError = null;
+      window.onSpeechEnd = null;
+      window.onSpeechStart = null;
+      window.onSpeechReady = null;
+      window.onPermissionGranted = null;
+      window.onPermissionDenied = null;
+      window.onSttSupportCheck = null;
+    };
+  }, []);
+
+  const startListening = () => {
+    if (window.AndroidTutor) {
+      // Check if STT is supported first
+      if (!window.AndroidTutor.isSttSupported()) {
+        alert("当前设备不支持语音识别");
+        return;
+      }
+      window.AndroidTutor.startListening("zh-CN");
+    }
   };
 
   const stopListening = () => {
-    recognitionRef.current?.stop();
+    if (window.AndroidTutor) {
+      window.AndroidTutor.stopListening();
+    }
     setIsListening(false);
   };
 
-  const onVoiceStart = () => { synthRef.current?.cancel(); startListening(); };
+  const onVoiceStart = () => { window.AndroidTutor?.stopSpeak(); startListening(); };
   const onVoiceStop = () => {
     stopListening();
     setTimeout(() => { if (input.trim()) sendMsg(input); }, 300);
