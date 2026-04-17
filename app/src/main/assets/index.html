@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#FFF8E7">
+<title>学习乐园</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#FFF8E7;color:#3D2C1E;overflow:hidden;}
+body{display:flex;flex-direction:column;height:100vh;}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-thumb{background:#E8D8C8;border-radius:2px;}
+button{outline:none;-webkit-tap-highlight-color:transparent;cursor:pointer;border:none;font-family:inherit;}
+textarea,input,select{outline:none;font-family:inherit;}
+.page{display:none;flex-direction:column;height:100%;overflow:hidden;}
+.page.active{display:flex;}
+/* Animations */
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes bounce{0%{transform:translateY(0) scale(1)}100%{transform:translateY(-18px) scale(1.04)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes starPop{0%{transform:scale(0)}60%{transform:scale(1.5)}100%{transform:scale(1)}}
+@keyframes confettiFall{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+@keyframes praisePop{0%{transform:scale(0) rotate(-10deg);opacity:0}60%{transform:scale(1.12) rotate(3deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes typingDot{0%,80%,100%{transform:scale(.5);opacity:.3}40%{transform:scale(1);opacity:1}}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes bubbleRise{0%{transform:translateY(0);opacity:.7}100%{transform:translateY(-110vh);opacity:0}}
+@keyframes recordPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,107,.4)}50%{box-shadow:0 0 0 12px rgba(255,107,107,0)}}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* HOME */
+#homePage{background:linear-gradient(160deg,#FFF8E7 0%,#FFF0F5 50%,#F0F5FF 100%);overflow-y:auto;}
+.home-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;position:sticky;top:0;z-index:100;background:rgba(255,248,231,.92);backdrop-filter:blur(8px);}
+.app-logo{font-size:19px;font-weight:800;color:#FF6B6B;}
+.header-right{display:flex;gap:8px;align-items:center;}
+.star-badge{background:#FFD93D;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:700;color:#3D2C1E;box-shadow:0 3px 10px rgba(255,217,61,.5);}
+.settings-btn{background:white;border:2px solid #E8D8C8;border-radius:12px;padding:6px 10px;font-size:17px;color:#7A5C44;}
+.home-hero{display:flex;flex-direction:column;align-items:center;padding:12px 0 14px;}
+.mascot-float{animation:float 3s ease-in-out infinite;}
+.hero-title{font-size:22px;font-weight:800;color:#3D2C1E;text-align:center;margin-top:6px;}
+.hero-sub{font-size:13px;color:#7A5C44;text-align:center;margin-top:5px;line-height:1.6;padding:0 20px;}
+/* Model indicator on home */
+.model-chip{display:inline-flex;align-items:center;gap:6px;background:white;border:1.5px solid #E8D8C8;border-radius:20px;padding:5px 12px;font-size:12px;color:#7A5C44;margin:8px auto 0;cursor:pointer;}
+.model-chip-dot{width:8px;height:8px;border-radius:50%;background:#6BCB77;}
+.model-chip.not-set .model-chip-dot{background:#f87171;}
+.age-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:0 18px 14px;}
+.age-btn{background:white;border:2.5px solid #E8D8C8;border-radius:20px;padding:7px 13px;color:#7A5C44;font-size:12px;font-weight:700;transition:all .2s;}
+.age-btn.active{background:#FF6B6B;border-color:#FF6B6B;color:white;box-shadow:0 3px 10px rgba(255,107,107,.4);}
+.subject-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px 30px;}
+.subject-card{border-radius:18px;padding:16px 12px;text-align:center;transition:transform .15s;border:2.5px solid transparent;animation:fadeIn .4s ease both;}
+.subject-card:active{transform:scale(.95);}
+.subject-emoji{font-size:34px;margin-bottom:5px;display:block;animation:float 3s ease-in-out infinite;}
+.subject-label{font-size:13px;font-weight:800;color:#3D2C1E;margin-bottom:2px;}
+.subject-desc{font-size:10px;color:#7A5C44;line-height:1.4;}
+.subject-tag{display:inline-block;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700;color:white;margin-top:6px;}
+.bubble-bg{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
+.bubble{position:absolute;bottom:-60px;border-radius:50%;animation:bubbleRise 10s ease-in infinite;}
+/* =================== SETTINGS PAGE =================== */
+#settingsPage{background:#FFF8E7;overflow-y:auto;}
+.settings-header{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:2px solid #F0E4D4;position:sticky;top:0;background:rgba(255,248,231,.95);backdrop-filter:blur(8px);z-index:10;}
+.settings-back{background:white;border:2px solid #E8D8C8;border-radius:10px;padding:6px 10px;font-size:14px;color:#7A5C44;font-weight:700;}
+.settings-title{font-size:17px;font-weight:800;color:#3D2C1E;}
+.settings-body{padding:16px;display:flex;flex-direction:column;gap:20px;max-width:520px;margin:0 auto;width:100%;}
+/* Provider pill tabs */
+.provider-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+.provider-tabs::-webkit-scrollbar{display:none;}
+.provider-tab{flex-shrink:0;display:flex;align-items:center;gap:6px;background:white;border:2px solid #E8D8C8;border-radius:20px;padding:7px 14px;font-size:13px;font-weight:700;color:#7A5C44;transition:all .2s;white-space:nowrap;}
+.provider-tab.active{color:white;border-color:transparent;box-shadow:0 3px 10px rgba(0,0,0,.15);}
+.provider-tab .pico{font-size:16px;}
+/* Provider config card */
+.provider-card{background:white;border:2px solid #E8D8C8;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px;}
+.provider-card-header{display:flex;align-items:center;gap:10px;}
+.provider-logo{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.provider-name{font-size:16px;font-weight:800;color:#3D2C1E;}
+.provider-desc{font-size:12px;color:#7A5C44;margin-top:2px;}
+.active-badge{margin-left:auto;background:#6BCB77;color:white;border-radius:10px;padding:3px 10px;font-size:11px;font-weight:700;}
+.field-label{font-size:11px;color:#B09070;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.field-input{width:100%;background:#FFF8F0;border:1.5px solid #E8D8C8;border-radius:10px;padding:9px 12px;font-size:13px;color:#3D2C1E;transition:border-color .2s;}
+.field-input:focus{border-color:#FF6B6B;}
+.url-display{background:#F5EDE0;border:1.5px solid #E8D8C8;border-radius:10px;padding:8px 12px;font-size:11px;color:#7A5C44;font-family:monospace;word-break:break-all;line-height:1.5;}
+.model-select{width:100%;background:#FFF8F0;border:1.5px solid #E8D8C8;border-radius:10px;padding:9px 12px;font-size:13px;color:#3D2C1E;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23B09070'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:10px;}
+.custom-model-row{display:flex;gap:8px;}
+.custom-model-input{flex:1;background:#FFF8F0;border:1.5px solid #E8D8C8;border-radius:10px;padding:9px 12px;font-size:13px;color:#3D2C1E;}
+.test-btn{background:white;border:2px solid #E8D8C8;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;color:#7A5C44;display:flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;}
+.test-btn:active{opacity:.7;}
+.test-result{border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;display:none;}
+.test-result.ok{background:#F0FFF4;border:1.5px solid #6BCB77;color:#2d8a4e;}
+.test-result.err{background:#FFF0F0;border:1.5px solid #FF6B6B;color:#c0392b;}
+.activate-btn{width:100%;border-radius:12px;padding:13px;font-size:15px;font-weight:800;color:white;transition:all .2s;border:none;}
+.activate-btn:active{opacity:.85;}
+/* CHAT */
+#chatPage{background:linear-gradient(160deg,#FFF8E7,#FFFDF5);}
+.chat-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;flex-shrink:0;position:relative;z-index:10;}
+.back-btn{background:white;border:2px solid rgba(0,0,0,.1);border-radius:12px;padding:7px 12px;color:#7A5C44;font-size:13px;font-weight:700;}
+.chat-subject{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:#3D2C1E;}
+.chat-model-chip{font-size:10px;background:rgba(255,255,255,.7);border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:2px 7px;color:#7A5C44;}
+.stars-row{display:flex;gap:3px;}
+.prog-bar{height:5px;background:#EDE0D0;flex-shrink:0;}
+.prog-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.34,1.56,.64,1);}
+.mascot-section{display:flex;flex-direction:column;align-items:center;padding:4px 0 2px;flex-shrink:0;position:relative;z-index:1;}
+.mascot-anim{animation:float 3s ease-in-out infinite;}
+.mascot-anim.bounce-anim{animation:bounce .5s ease infinite alternate;}
+.praise-banner{border-radius:22px;padding:5px 18px;font-size:13px;font-weight:800;color:#3D2C1E;margin-top:-8px;box-shadow:0 4px 16px rgba(255,217,61,.6);animation:praisePop .5s ease;z-index:5;white-space:nowrap;}
+.chat-list{flex:1;overflow-y:auto;padding:8px 14px;display:flex;flex-direction:column;gap:10px;}
+.msg-row{display:flex;gap:8px;align-items:flex-end;animation:fadeIn .25s ease;}
+.msg-row.user{flex-direction:row-reverse;}
+.msg-icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.msg-content{max-width:78%;display:flex;flex-direction:column;gap:4px;}
+.hint-chip{display:inline-block;background:#FFF5E0;border:1.5px solid #FFB347;border-radius:10px;padding:3px 9px;font-size:11px;color:#7A5C44;font-weight:600;}
+.bub{padding:9px 13px;font-size:14px;line-height:1.65;}
+.bub.ai{background:white;border-radius:4px 16px 16px 16px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+.bub.user{border-radius:16px 4px 16px 16px;color:white;}
+.quick-replies{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px;}
+.quick-btn{background:white;border-radius:14px;padding:5px 11px;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.06);transition:all .15s;border:2px solid rgba(0,0,0,.1);}
+.quick-btn:active{transform:scale(.94);}
+.typing-row{display:flex;gap:8px;align-items:flex-end;}
+.typing-bubble{background:white;border-radius:4px 16px 16px 16px;padding:11px 15px;display:flex;gap:5px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.typing-dot{width:7px;height:7px;border-radius:50%;animation:typingDot 1.2s infinite;}
+.partial-text{text-align:right;font-size:11px;color:#B09070;font-style:italic;padding-right:8px;}
+/* INPUT */
+.input-area{padding:7px 13px 13px;border-top:2px solid rgba(0,0,0,.06);background:rgba(255,255,255,.9);backdrop-filter:blur(10px);flex-shrink:0;position:relative;z-index:10;}
+.tts-bar,.rec-bar{align-items:center;gap:7px;margin-bottom:6px;font-size:12px;display:none;}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:#FF6B6B;animation:pulse 1s infinite;}
+.stop-btn{background:none;color:#B09070;font-size:12px;font-family:inherit;}
+.mode-row{display:flex;gap:8px;margin-bottom:9px;}
+.mode-btn{flex:1;border-radius:16px;padding:6px 0;font-size:13px;font-weight:700;transition:all .2s;border:2px solid #E8D8C8;}
+.text-row{display:flex;gap:8px;align-items:flex-end;}
+.mic-sm{width:42px;height:42px;border-radius:50%;background:white;border:2px solid #E8D8C8;font-size:17px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;touch-action:manipulation;user-select:none;-webkit-user-select:none;}
+.mic-sm.recording{background:#FF6B6B;border-color:#FF6B6B;animation:recordPulse 1.5s infinite;}
+#chatTa{flex:1;background:white;border-radius:12px;padding:9px 12px;font-size:14px;resize:none;min-height:42px;max-height:96px;line-height:1.5;border:2px solid #E8D8C8;}
+.send-btn{width:42px;height:42px;border-radius:11px;font-size:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;color:white;border:none;}
+.send-btn:disabled{background:#EDE0D0!important;}
+.voice-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.vol-bars{display:flex;gap:4px;align-items:flex-end;height:36px;}
+.vol-bar{width:5px;background:#E8D8C8;border-radius:3px;height:5px;transition:height .09s;}
+.hold-btn{width:100px;height:100px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:all .15s;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;border:4px solid rgba(255,107,107,.4);background:rgba(255,255,255,.6);}
+.hold-btn.pressing{transform:scale(1.08);background:rgba(255,107,107,.15)!important;border-color:#FF6B6B!important;box-shadow:0 0 30px rgba(255,107,107,.4)!important;}
+.hold-icon{font-size:35px;pointer-events:none;}
+.hold-label{font-size:11px;font-weight:800;pointer-events:none;color:#7A5C44;}
+.input-tip{text-align:center;font-size:11px;color:#B09070;margin-top:5px;}
+.confetti-p{position:fixed;animation:confettiFall 1.8s ease-in forwards;pointer-events:none;z-index:9999;}
+/* Spinner */
+.spinner{width:16px;height:16px;border:2px solid rgba(0,0,0,.1);border-top-color:#FF6B6B;border-radius:50%;animation:spin .8s linear infinite;display:inline-block;}
+</style>
+</head>
+<body>
+
+<!-- ===================== HOME PAGE ===================== -->
+<div id="homePage" class="page active">
+  <div class="bubble-bg" id="bbHome"></div>
+  <div class="home-header">
+    <div class="app-logo">🌟 学习乐园</div>
+    <div class="header-right">
+      <div class="star-badge">⭐ <span id="totalStars">0</span></div>
+      <button class="settings-btn" onclick="showPage('settingsPage')">⚙️</button>
+    </div>
+  </div>
+  <div style="max-width:520px;margin:0 auto;width:100%;padding:0;position:relative;z-index:1;">
+    <div class="home-hero">
+      <div class="mascot-float">
+        <svg viewBox="0 0 140 154" width="110" height="121">
+          <ellipse cx="105" cy="130" rx="22" ry="14" fill="#FFB347" transform="rotate(-25 105 130)" opacity=".9"/>
+          <ellipse cx="105" cy="130" rx="14" ry="8" fill="white" transform="rotate(-25 105 130)" opacity=".7"/>
+          <ellipse cx="70" cy="118" rx="36" ry="28" fill="#FFB347"/>
+          <ellipse cx="70" cy="118" rx="22" ry="18" fill="white" opacity=".8"/>
+          <polygon points="28,50 18,10 48,38" fill="#FFB347"/>
+          <polygon points="30,46 22,18 44,38" fill="#FF6B6B" opacity=".6"/>
+          <polygon points="112,50 122,10 92,38" fill="#FFB347"/>
+          <polygon points="110,46 118,18 96,38" fill="#FF6B6B" opacity=".6"/>
+          <ellipse cx="70" cy="68" rx="44" ry="40" fill="#FFB347"/>
+          <ellipse cx="40" cy="78" rx="12" ry="8" fill="#FF6B6B" opacity=".35"/>
+          <ellipse cx="100" cy="78" rx="12" ry="8" fill="#FF6B6B" opacity=".35"/>
+          <ellipse cx="70" cy="73" rx="28" ry="25" fill="white" opacity=".75"/>
+          <path d="M52 62 Q58 56 64 62" stroke="#3D2C1E" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+          <path d="M76 62 Q82 56 88 62" stroke="#3D2C1E" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+          <path d="M46 50 Q58 44 66 50" stroke="#3D2C1E" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M74 50 Q82 44 94 50" stroke="#3D2C1E" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <ellipse cx="70" cy="78" rx="5" ry="3.5" fill="#E55555"/>
+          <path d="M52 82 Q70 100 88 82" stroke="#E55555" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <ellipse cx="44" cy="144" rx="16" ry="10" fill="#FFB347"/>
+          <ellipse cx="96" cy="144" rx="16" ry="10" fill="#FFB347"/>
+        </svg>
+      </div>
+      <div class="hero-title">你好，小探险家！🎉</div>
+      <div class="hero-sub">我是<span style="color:#FF6B6B;font-weight:700;">小火</span>，你的学习小伙伴<br>选一个学习乐园，我们出发吧！</div>
+      <div class="model-chip" id="homeModelChip" onclick="showPage('settingsPage')">
+        <div class="model-chip-dot" id="modelDot"></div>
+        <span id="modelChipText">请先设置 AI 模型</span>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:13px;color:#B09070;font-weight:600;margin-bottom:10px;">我今年...</div>
+    <div class="age-row">
+      <button class="age-btn" onclick="setAge(this,'5-6岁')">5-6岁</button>
+      <button class="age-btn active" onclick="setAge(this,'7-8岁')">7-8岁</button>
+      <button class="age-btn" onclick="setAge(this,'9-10岁')">9-10岁</button>
+      <button class="age-btn" onclick="setAge(this,'11-12岁')">11-12岁</button>
+    </div>
+    <div class="subject-grid" id="subjectGrid"></div>
+  </div>
+</div>
+
+<!-- ===================== SETTINGS PAGE ===================== -->
+<div id="settingsPage" class="page">
+  <div class="settings-header">
+    <button class="settings-back" onclick="saveSettingsAndBack()">← 返回</button>
+    <div class="settings-title">⚙️ AI 模型设置</div>
+  </div>
+  <div class="settings-body">
+    <!-- Provider tabs -->
+    <div>
+      <div class="field-label">选择 AI 提供商</div>
+      <div class="provider-tabs" id="providerTabs"></div>
+    </div>
+    <!-- Provider config area -->
+    <div id="providerConfigArea"></div>
+    <!-- Global save hint -->
+    <div style="background:#FFF5E0;border:1.5px solid #FFB347;border-radius:12px;padding:12px 14px;font-size:12px;color:#7A5C44;line-height:1.6;">
+      💡 <strong>使用提示：</strong>所有 API Key 仅保存在本地设备，不会上传到任何服务器。<br>
+      点击「设为当前模型」后即可开始学习。不同科目可切换不同模型。
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CHAT PAGE ===================== -->
+<div id="chatPage" class="page">
+  <div class="bubble-bg" id="bbChat"></div>
+  <div class="chat-header">
+    <button class="back-btn" onclick="goHome()">← 返回</button>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <div class="chat-subject"><span id="chatEmoji">📚</span><span id="chatLabel">学习</span></div>
+      <div class="chat-model-chip" id="chatModelChip">模型</div>
+    </div>
+    <div class="stars-row" id="starsRow"></div>
+  </div>
+  <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+  <div class="mascot-section">
+    <div id="mascotEl" class="mascot-anim"></div>
+    <div id="praiseBanner" class="praise-banner" style="display:none;background:#FFD93D;"></div>
+  </div>
+  <div class="chat-list" id="chatList"></div>
+  <div class="input-area">
+    <div class="tts-bar" id="ttsBar">
+      <div style="width:7px;height:7px;border-radius:50%;animation:pulse 1s infinite;" id="ttsDot"></div>
+      <span>小火正在说话…</span>
+      <button class="stop-btn" onclick="stopTTS()">停止</button>
+    </div>
+    <div class="rec-bar" id="recBar">
+      <div class="rec-dot"></div><span>录音中…</span>
+      <button class="stop-btn" onclick="stopListen()">停止</button>
+    </div>
+    <div id="partialEl" class="partial-text" style="display:none;"></div>
+    <div class="mode-row">
+      <button id="btnText" class="mode-btn" onclick="setMode('text')">⌨ 文字</button>
+      <button id="btnVoice" class="mode-btn" onclick="setMode('voice')">🎙 语音</button>
+    </div>
+    <div id="textRow" class="text-row">
+      <button id="micSm" class="mic-sm"
+        ontouchstart="event.preventDefault()" ontouchend="onSmMicRelease(event)"
+        onmousedown="event.preventDefault()" onmouseup="onSmMicRelease(event)">🎙</button>
+      <textarea id="chatTa" rows="1" placeholder="说出你的答案…" oninput="onTaInput()" onkeydown="onTaKey(event)"></textarea>
+      <button id="sendBtn" class="send-btn" onclick="doSend()" disabled>↑</button>
+    </div>
+    <div id="voiceRow" style="display:none;">
+      <div class="voice-wrap">
+        <div class="vol-bars" id="volBars">
+          <div class="vol-bar"></div><div class="vol-bar"></div><div class="vol-bar"></div>
+          <div class="vol-bar"></div><div class="vol-bar"></div><div class="vol-bar"></div>
+          <div class="vol-bar"></div><div class="vol-bar"></div><div class="vol-bar"></div>
+        </div>
+        <div class="hold-btn" id="holdBtn"
+          ontouchstart="onHoldS(event)" ontouchend="onHoldE(event)" ontouchcancel="onHoldE(event)"
+          onmousedown="onHoldS(event)" onmouseup="onHoldE(event)" onmouseleave="onHoldE(event)">
+          <div class="hold-icon" id="holdIco">🎙</div>
+          <div class="hold-label" id="holdLbl">按住 说话</div>
+        </div>
+      </div>
+    </div>
+    <div class="input-tip" id="inputTip">💪 大声说出你的答案！</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// PROVIDERS CONFIG
+// ═══════════════════════════════════════════════════════════════════
+const PROVIDERS = [
+  {
+    id: 'claude', name: 'Claude', icon: '🤖', color: '#FF6B6B',
+    desc: 'Anthropic · 最强推理能力',
+    apiType: 'anthropic',
+    urlTemplate: 'https://api.anthropic.com/v1/messages',
+    keyPlaceholder: 'sk-ant-api03-...',
+    keyPrefix: 'sk-ant',
+    models: [
+      {id:'claude-sonnet-4-20250514', name:'Claude Sonnet 4（推荐）'},
+      {id:'claude-haiku-4-5-20251001', name:'Claude Haiku 4.5（快速）'},
+      {id:'claude-opus-4-6', name:'Claude Opus 4.6（旗舰）'},
+    ],
+    docUrl: 'console.anthropic.com',
+  },
+  {
+    id: 'deepseek', name: 'DeepSeek', icon: '🐋', color: '#4D96FF',
+    desc: '深度求索 · 性价比之王',
+    apiType: 'openai',
+    urlTemplate: 'https://api.deepseek.com/v1/chat/completions',
+    keyPlaceholder: 'sk-...',
+    keyPrefix: 'sk-',
+    models: [
+      {id:'deepseek-chat', name:'DeepSeek-V3（推荐）'},
+      {id:'deepseek-reasoner', name:'DeepSeek-R1（推理）'},
+    ],
+    docUrl: 'platform.deepseek.com',
+  },
+  {
+    id: 'minimax', name: 'MiniMax', icon: '🌊', color: '#6BCB77',
+    desc: '海螺 AI · 国产精品',
+    apiType: 'openai',
+    urlTemplate: 'https://api.minimaxi.com/v1/chat/completions',
+    keyPlaceholder: 'eyJ...',
+    keyPrefix: '',
+    models: [
+      {id:'MiniMax-Text-01', name:'MiniMax-Text-01（推荐）'},
+      {id:'abab6.5s-chat', name:'abab6.5s（快速）'},
+      {id:'abab5.5-chat', name:'abab5.5（轻量）'},
+    ],
+    docUrl: 'platform.minimaxi.com',
+    extraHeaders: {'GroupId': ''},
+    extraNote: '⚠️ MiniMax 需要在下方填写 Group ID',
+  },
+  {
+    id: 'siliconflow', name: '硅基流动', icon: '🔥', color: '#C77DFF',
+    desc: 'SiliconFlow · 百模平台',
+    apiType: 'openai',
+    urlTemplate: 'https://api.siliconflow.cn/v1/chat/completions',
+    keyPlaceholder: 'sk-...',
+    keyPrefix: 'sk-',
+    models: [
+      {id:'deepseek-ai/DeepSeek-V3', name:'DeepSeek-V3'},
+      {id:'deepseek-ai/DeepSeek-R1', name:'DeepSeek-R1（推理）'},
+      {id:'Qwen/Qwen2.5-72B-Instruct', name:'Qwen2.5-72B'},
+      {id:'Qwen/Qwen2.5-32B-Instruct', name:'Qwen2.5-32B'},
+      {id:'THUDM/glm-4-9b-chat', name:'GLM-4-9B'},
+    ],
+    docUrl: 'cloud.siliconflow.cn',
+  },
+  {
+    id: 'moonshot', name: 'Kimi', icon: '🌙', color: '#FFB347',
+    desc: '月之暗面 · 长上下文',
+    apiType: 'openai',
+    urlTemplate: 'https://api.moonshot.cn/v1/chat/completions',
+    keyPlaceholder: 'sk-...',
+    keyPrefix: 'sk-',
+    models: [
+      {id:'moonshot-v1-8k', name:'Kimi-8K（快速）'},
+      {id:'moonshot-v1-32k', name:'Kimi-32K（推荐）'},
+      {id:'moonshot-v1-128k', name:'Kimi-128K（长文）'},
+    ],
+    docUrl: 'platform.moonshot.cn',
+  },
+  {
+    id: 'zhipu', name: '智谱', icon: '🧠', color: '#FF6B6B',
+    desc: '智谱 AI · GLM 系列',
+    apiType: 'openai',
+    urlTemplate: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+    keyPlaceholder: '请填入智谱 API Key',
+    keyPrefix: '',
+    models: [
+      {id:'glm-4-flash', name:'GLM-4-Flash（免费）'},
+      {id:'glm-4-plus', name:'GLM-4-Plus（推荐）'},
+      {id:'glm-4', name:'GLM-4'},
+      {id:'glm-4-air', name:'GLM-4-Air（轻量）'},
+    ],
+    docUrl: 'open.bigmodel.cn',
+  },
+  {
+    id: 'qwen', name: '通义千问', icon: '☁️', color: '#6BCB77',
+    desc: '阿里云 · 通义系列',
+    apiType: 'openai',
+    urlTemplate: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    keyPlaceholder: 'sk-...',
+    keyPrefix: 'sk-',
+    models: [
+      {id:'qwen-turbo-latest', name:'Qwen-Turbo（快速）'},
+      {id:'qwen-plus-latest', name:'Qwen-Plus（推荐）'},
+      {id:'qwen-max-latest', name:'Qwen-Max（旗舰）'},
+      {id:'qwen2.5-72b-instruct', name:'Qwen2.5-72B'},
+    ],
+    docUrl: 'bailian.console.aliyun.com',
+  },
+  {
+    id: 'openai', name: 'OpenAI', icon: '✨', color: '#4D96FF',
+    desc: 'ChatGPT 系列',
+    apiType: 'openai',
+    urlTemplate: 'https://api.openai.com/v1/chat/completions',
+    keyPlaceholder: 'sk-...',
+    keyPrefix: 'sk-',
+    models: [
+      {id:'gpt-4o', name:'GPT-4o（推荐）'},
+      {id:'gpt-4o-mini', name:'GPT-4o-mini（快速）'},
+      {id:'gpt-4-turbo', name:'GPT-4-Turbo'},
+      {id:'gpt-3.5-turbo', name:'GPT-3.5-Turbo（低价）'},
+      {id:'o1-mini', name:'o1-mini（推理）'},
+    ],
+    docUrl: 'platform.openai.com',
+  },
+  {
+    id: 'custom', name: '自定义', icon: '🔧', color: '#B09070',
+    desc: '任意 OpenAI 兼容接口',
+    apiType: 'openai',
+    urlTemplate: '',
+    keyPlaceholder: 'Bearer Token 或 API Key',
+    keyPrefix: '',
+    models: [],
+    isCustom: true,
+    docUrl: '',
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// SUBJECTS
+// ═══════════════════════════════════════════════════════════════════
+const SUBJS=[
+  {id:'math',label:'数学王国',emoji:'🔢',color:'#FF6B6B',bg:'#FFF0F0',desc:'加减乘除 趣味挑战'},
+  {id:'chinese',label:'汉字乐园',emoji:'📖',color:'#4D96FF',bg:'#F0F5FF',desc:'认字写字 故事天地'},
+  {id:'english',label:'英语冒险',emoji:'🌍',color:'#6BCB77',bg:'#F0FFF4',desc:'字母单词 趣味对话'},
+  {id:'science',label:'科学实验室',emoji:'🔬',color:'#C77DFF',bg:'#F8F0FF',desc:'探索自然 发现秘密'},
+  {id:'story',label:'故事时间',emoji:'📚',color:'#FFB347',bg:'#FFF5E6',desc:'阅读理解 想象世界'},
+  {id:'art',label:'创意美术',emoji:'🎨',color:'#FFC107',bg:'#FFFDE7',desc:'颜色形状 创意表达'},
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════
+let g={
+  age:'7-8岁', subj:null, mastery:0, hist:[],
+  totalStars:parseInt(localStorage.getItem('ks_s')||'0'),
+  mode:'text', listening:false, holdA:false,
+  // Active provider
+  activeProviderId: localStorage.getItem('ks_active_provider')||'',
+  activeModel: localStorage.getItem('ks_active_model')||'',
+};
+// Per-provider saved keys/models/extras
+function loadProviderSettings(pid){
+  try{ return JSON.parse(localStorage.getItem('ks_p_'+pid)||'{}'); }
+  catch{ return {}; }
+}
+function saveProviderSettings(pid, obj){
+  localStorage.setItem('ks_p_'+pid, JSON.stringify(obj));
+}
+let rec=null;
+const syn=window.speechSynthesis;
+let curProviderTab='claude';
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+document.getElementById('totalStars').textContent=g.totalStars;
+buildBubbles('bbHome'); buildBubbles('bbChat');
+buildGrid();
+buildProviderTabs();
+updateHomeModelChip();
+
+function buildBubbles(id){
+  const el=document.getElementById(id);
+  const cols=['rgba(255,217,61,.3)','rgba(255,107,107,.2)','rgba(107,203,119,.2)','rgba(77,150,255,.2)','rgba(199,125,255,.3)'];
+  for(let i=0;i<12;i++){const d=document.createElement('div');d.className='bubble';const sz=18+(i*13)%38;d.style.cssText=`width:${sz}px;height:${sz}px;left:${(i*31)%90}%;background:${cols[i%5]};animation-duration:${8+i%4*2}s;animation-delay:${i*.6}s;`;el.appendChild(d);}
+}
+function buildGrid(){
+  const g2=document.getElementById('subjectGrid');
+  SUBJS.forEach((s,i)=>{
+    const b=document.createElement('button');
+    b.className='subject-card';
+    b.style.cssText=`background:${s.bg};border-color:${s.color}44;box-shadow:0 4px 12px ${s.color}22;animation-delay:${i*.07}s;`;
+    b.innerHTML=`<span class="subject-emoji" style="animation-delay:${i*.3}s;">${s.emoji}</span><div class="subject-label">${s.label}</div><div class="subject-desc">${s.desc}</div><span class="subject-tag" style="background:${s.color};">小学${i<3?'基础':'探索'}</span>`;
+    b.onclick=()=>startLearn(s);
+    g2.appendChild(b);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SETTINGS UI
+// ═══════════════════════════════════════════════════════════════════
+function buildProviderTabs(){
+  const tabs=document.getElementById('providerTabs');tabs.innerHTML='';
+  PROVIDERS.forEach(p=>{
+    const btn=document.createElement('button');
+    btn.className='provider-tab'+(curProviderTab===p.id?' active':'');
+    btn.style.background=curProviderTab===p.id?p.color:'white';
+    btn.innerHTML=`<span class="pico">${p.icon}</span>${p.name}`;
+    btn.onclick=()=>{curProviderTab=p.id;buildProviderTabs();renderProviderConfig(p.id);};
+    tabs.appendChild(btn);
+  });
+  renderProviderConfig(curProviderTab);
+}
+
+function renderProviderConfig(pid){
+  const p=PROVIDERS.find(x=>x.id===pid);
+  if(!p)return;
+  const saved=loadProviderSettings(pid);
+  const area=document.getElementById('providerConfigArea');
+  const isActive=g.activeProviderId===pid;
+
+  let modelOptionsHtml='';
+  if(!p.isCustom){
+    p.models.forEach(m=>{
+      const sel=saved.model===m.id?'selected':'';
+      modelOptionsHtml+=`<option value="${m.id}" ${sel}>${m.name}</option>`;
+    });
+  }
+
+  let extraFieldHtml='';
+  if(pid==='minimax'){
+    extraFieldHtml=`<div>
+      <div class="field-label">Group ID（必填）</div>
+      <input class="field-input" id="cfg_groupid" type="text" placeholder="1234567890"
+        value="${saved.groupId||''}" oninput="onCfgChange('${pid}')"/>
+    </div>`;
+  }
+
+  const customUrl=saved.customUrl||p.urlTemplate;
+  const currentModel=saved.model||(p.models[0]?.id||'');
+  const autoUrl=p.isCustom?customUrl:p.urlTemplate;
+
+  area.innerHTML=`
+  <div class="provider-card" style="border-color:${p.color}33;">
+    <div class="provider-card-header">
+      <div class="provider-logo" style="background:${p.color}22;">${p.icon}</div>
+      <div>
+        <div class="provider-name">${p.name}</div>
+        <div class="provider-desc">${p.desc}</div>
+      </div>
+      ${isActive?`<div class="active-badge">✓ 当前</div>`:''}
+    </div>
+
+    ${p.extraNote?`<div style="background:#FFF5E0;border:1.5px solid #FFB347;border-radius:10px;padding:8px 12px;font-size:12px;color:#7A5C44;">${p.extraNote}</div>`:''}
+
+    <!-- API Key -->
+    <div>
+      <div class="field-label">API Key</div>
+      <input class="field-input" id="cfg_key" type="password"
+        placeholder="${p.keyPlaceholder}"
+        value="${saved.key||''}"
+        oninput="onCfgChange('${pid}')"/>
+      <div style="font-size:11px;color:#B09070;margin-top:4px;">获取地址：${p.docUrl||'请查阅官方文档'}</div>
+    </div>
+
+    ${extraFieldHtml}
+
+    <!-- Model selector -->
+    ${!p.isCustom?`<div>
+      <div class="field-label">模型选择</div>
+      <select class="model-select" id="cfg_model" onchange="onCfgChange('${pid}')">
+        ${modelOptionsHtml}
+      </select>
+    </div>`:''}
+
+    <!-- Custom model name (always shown for custom, optional for others) -->
+    <div>
+      <div class="field-label">${p.isCustom?'模型名称':'自定义模型名称（可选）'}</div>
+      <input class="field-input" id="cfg_custom_model"
+        placeholder="${p.isCustom?'例如: gpt-4o':'留空则使用上方选择'}"
+        value="${saved.customModel||''}"
+        oninput="onCfgChange('${pid}')"/>
+    </div>
+
+    <!-- URL -->
+    <div>
+      <div class="field-label">API 请求地址（自动生成）</div>
+      ${p.isCustom?`<input class="field-input" id="cfg_url" placeholder="https://your-api.com/v1/chat/completions"
+        value="${saved.customUrl||''}" oninput="onCfgChange('${pid}')"/>`
+      :`<div class="url-display" id="cfg_url_display">${autoUrl}</div>`}
+    </div>
+
+    <!-- Test + Activate row -->
+    <div style="display:flex;gap:8px;">
+      <button class="test-btn" onclick="testProvider('${pid}')">
+        <span id="testSpinner_${pid}" style="display:none;"><div class="spinner"></div></span>
+        🔌 测试连接
+      </button>
+      <button class="activate-btn" style="background:${p.color};"
+        onclick="activateProvider('${pid}')">
+        ${isActive?'✓ 已是当前模型':'设为当前模型'}
+      </button>
+    </div>
+    <div class="test-result" id="testResult_${pid}"></div>
+  </div>`;
+}
+
+function onCfgChange(pid){
+  const p=PROVIDERS.find(x=>x.id===pid);if(!p)return;
+  const key=document.getElementById('cfg_key')?.value.trim()||'';
+  const modelEl=document.getElementById('cfg_model');
+  const model=modelEl?modelEl.value:'';
+  const customModel=document.getElementById('cfg_custom_model')?.value.trim()||'';
+  const customUrl=document.getElementById('cfg_url')?.value.trim()||'';
+  const groupId=document.getElementById('cfg_groupid')?.value.trim()||'';
+  saveProviderSettings(pid,{key,model,customModel,customUrl,groupId});
+  // Update URL display for non-custom
+  if(!p.isCustom){
+    const ud=document.getElementById('cfg_url_display');
+    if(ud) ud.textContent=p.urlTemplate;
+  }
+}
+
+function activateProvider(pid){
+  onCfgChange(pid); // save first
+  const saved=loadProviderSettings(pid);
+  if(!saved.key){showToast('请先填写 API Key！');return;}
+  const p=PROVIDERS.find(x=>x.id===pid);
+  const modelId=saved.customModel||(document.getElementById('cfg_model')?.value||saved.model||p?.models[0]?.id||'');
+  g.activeProviderId=pid;
+  g.activeModel=modelId;
+  localStorage.setItem('ks_active_provider',pid);
+  localStorage.setItem('ks_active_model',modelId);
+  showToast(`✅ 已切换到 ${p?.name} · ${modelId}`);
+  renderProviderConfig(pid); // refresh active badge
+  updateHomeModelChip();
+}
+
+async function testProvider(pid){
+  onCfgChange(pid);
+  const saved=loadProviderSettings(pid);
+  if(!saved.key){showToast('请先填写 API Key！');return;}
+  const spin=document.getElementById('testSpinner_'+pid);
+  const res=document.getElementById('testResult_'+pid);
+  spin.style.display='inline-block'; res.style.display='none';
+  try{
+    const p=PROVIDERS.find(x=>x.id===pid);
+    const modelId=saved.customModel||(saved.model||p?.models[0]?.id||'test');
+    const url=p.isCustom?saved.customUrl:p.urlTemplate;
+    const testMsgs=[{role:'user',content:'Hi, reply with just "ok"'}];
+    await callProviderRaw(p,saved,modelId,url,'You are a test bot. Reply only with "ok".',testMsgs,100);
+    res.className='test-result ok'; res.style.display='block';
+    res.textContent='✅ 连接成功！API Key 有效，模型响应正常';
+  }catch(e){
+    res.className='test-result err'; res.style.display='block';
+    res.textContent='❌ 连接失败：'+e.message;
+  }
+  spin.style.display='none';
+}
+
+function saveSettingsAndBack(){
+  if(curProviderTab) onCfgChange(curProviderTab);
+  updateHomeModelChip();
+  showPage('homePage');
+}
+
+function updateHomeModelChip(){
+  const chip=document.getElementById('homeModelChip');
+  const dot=document.getElementById('modelDot');
+  const txt=document.getElementById('modelChipText');
+  if(g.activeProviderId&&g.activeModel){
+    const p=PROVIDERS.find(x=>x.id===g.activeProviderId);
+    chip.className='model-chip';
+    dot.style.background='#6BCB77';
+    txt.textContent=`${p?.icon||''} ${p?.name} · ${g.activeModel.split('/').pop()}`;
+  } else {
+    chip.className='model-chip not-set';
+    dot.style.background='#f87171';
+    txt.textContent='⚠️ 请先设置 AI 模型';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UNIFIED API CALL ENGINE
+// ═══════════════════════════════════════════════════════════════════
+async function callProviderRaw(provider, saved, modelId, url, systemPrompt, messages, maxTokens){
+  if(!url) throw new Error('未配置 API 地址');
+  if(!saved.key) throw new Error('未配置 API Key');
+
+  if(provider.apiType==='anthropic'){
+    // Anthropic format
+    const headers={'Content-Type':'application/json','x-api-key':saved.key,'anthropic-version':'2023-06-01'};
+    const body={model:modelId,max_tokens:maxTokens,system:systemPrompt,messages};
+    const r=await fetch(url,{method:'POST',headers,body:JSON.stringify(body)});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||`HTTP ${r.status}`);}
+    const d=await r.json();
+    return d.content?.[0]?.text||'';
+  } else {
+    // OpenAI-compatible format
+    const headers={'Content-Type':'application/json','Authorization':'Bearer '+saved.key};
+    // MiniMax needs GroupId header
+    if(provider.id==='minimax'&&saved.groupId){
+      headers['GroupId']=saved.groupId;
+    }
+    const oaiMessages=[{role:'system',content:systemPrompt},...messages];
+    const body={model:modelId,max_tokens:maxTokens,messages:oaiMessages};
+    const r=await fetch(url,{method:'POST',headers,body:JSON.stringify(body)});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||`HTTP ${r.status}`);}
+    const d=await r.json();
+    return d.choices?.[0]?.message?.content||'';
+  }
+}
+
+async function callAI(userMsg, hist){
+  setSend(true); setMascot('thinking'); showTyping();
+  try{
+    if(!g.activeProviderId||!g.activeModel){
+      throw new Error('请先在设置中选择 AI 模型');
+    }
+    const provider=PROVIDERS.find(x=>x.id===g.activeProviderId);
+    const saved=loadProviderSettings(g.activeProviderId);
+    if(!saved.key) throw new Error('请先填写 '+provider.name+' 的 API Key');
+    const url=provider.isCustom?saved.customUrl:provider.urlTemplate;
+    const modelId=saved.customModel||g.activeModel;
+    const msgs=[...(hist||g.hist),{role:'user',content:userMsg}];
+    const systemPrompt=buildSys();
+    const raw=await callProviderRaw(provider,saved,modelId,url,systemPrompt,msgs,400);
+    let p;
+    try{const c=raw.replace(/```json\n?|\n?```/g,'').trim();p=JSON.parse(c.slice(c.indexOf('{'),c.lastIndexOf('}')+1));}
+    catch{p={message:raw,masteryDelta:0,currentMastery:g.mastery,mood:'idle',suggestedReplies:[],praise:'',hint:''};}
+    hideTyping();
+    g.hist=[...msgs,{role:'assistant',content:raw}];
+    appendMsg('ai',p.message||'',p.mood,p.suggestedReplies||[],p.hint||'');
+    updateMastery(p.currentMastery??(g.mastery+(p.masteryDelta||0)));
+    setMascot(p.mood||'idle',!!p.praise);
+    if(p.praise){
+      const bn=document.getElementById('praiseBanner');
+      bn.textContent='🌟 '+p.praise; bn.style.display='block';
+      fireConfetti();
+      g.totalStars++; localStorage.setItem('ks_s',g.totalStars);
+      document.getElementById('totalStars').textContent=g.totalStars;
+      setTimeout(()=>bn.style.display='none',3000);
+    }
+    doTTS(p.message||'');
+  }catch(e){
+    hideTyping(); setMascot('encourage');
+    const errMsg=e.message.includes('请先')?e.message:'哎呀，出了点问题😅 ('+e.message.slice(0,30)+')';
+    appendMsg('ai',errMsg,'encourage',['重试','去设置'],'');
+  }
+  setSend(false);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SYSTEM PROMPT
+// ═══════════════════════════════════════════════════════════════════
+function buildSys(){
+  const sm={math:'小学数学（数字加减乘除）',chinese:'小学语文（认字阅读）',english:'小学英语（字母单词对话）',science:'小学科学（自然实验）',story:'故事阅读',art:'美术基础'};
+  return `你是超友好AI学习伙伴小火，一只聪明活泼的小狐狸！帮${g.age}的小朋友学习${sm[g.subj?.id]||g.subj?.label||'知识'}。\n\n原则：1.语言超简单，像和小朋友说话 2.提问后等回答，不直接给答案 3.答对了大声夸奖 4.答错了温柔鼓励 5.多用表情符号😊🌟🎉 6.每次≤80字\n\n掌握分：自己推导+20,提示后对+10,部分对+5,错-5\n\n只回JSON：{"message":"说的话","masteryDelta":数字,"currentMastery":0-100,"mood":"idle或thinking或happy或celebrate或encourage或speaking","suggestedReplies":["1","2","3"],"praise":"夸奖或空","hint":"提示或空"}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// APP FLOW
+// ═══════════════════════════════════════════════════════════════════
+function setAge(btn,a){g.age=a;document.querySelectorAll('.age-btn').forEach(b=>b.classList.toggle('active',b===btn));}
+
+function startLearn(s){
+  if(!g.activeProviderId||!g.activeModel){
+    showToast('⚠️ 请先点击右上角 ⚙️ 设置 AI 模型！');
+    setTimeout(()=>showPage('settingsPage'),800);
+    return;
+  }
+  const saved=loadProviderSettings(g.activeProviderId);
+  if(!saved.key){showToast('请先填写 API Key！');showPage('settingsPage');return;}
+  g.subj=s;g.mastery=0;g.hist=[];
+  document.getElementById('chatEmoji').textContent=s.emoji;
+  document.getElementById('chatLabel').textContent=s.label;
+  // Show model chip in chat
+  const prov=PROVIDERS.find(x=>x.id===g.activeProviderId);
+  document.getElementById('chatModelChip').textContent=`${prov?.icon||''} ${g.activeModel.split('/').pop()}`;
+  document.getElementById('chatList').innerHTML='';
+  document.getElementById('chatPage').style.background=`linear-gradient(160deg,${s.bg},#FFFDF5)`;
+  document.getElementById('progFill').style.background=`linear-gradient(90deg,${s.color},${s.color}AA)`;
+  document.getElementById('sendBtn').style.background=s.color;
+  document.getElementById('ttsDot').style.background=s.color;
+  document.getElementById('holdBtn').style.borderColor=s.color+'66';
+  document.getElementById('holdBtn').style.boxShadow=`0 4px 18px ${s.color}44`;
+  document.getElementById('holdLbl').style.color=s.color;
+  updateMastery(0); setMode('text'); showPage('chatPage');
+  setMascot('idle');
+  callAI(`你好，小朋友想学${s.label}，请开始！`,[]);
+}
+function goHome(){showPage('homePage');stopTTS();stopListen();}
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+// ═══════════════════════════════════════════════════════════════════
+// MASTERY
+// ═══════════════════════════════════════════════════════════════════
+function updateMastery(v){
+  g.mastery=Math.max(0,Math.min(100,v));
+  document.getElementById('progFill').style.width=g.mastery+'%';
+  const s=Math.min(5,Math.round(g.mastery/20));
+  const sr=document.getElementById('starsRow');sr.innerHTML='';
+  for(let i=0;i<5;i++){const sp=document.createElement('span');sp.textContent='⭐';sp.style.cssText=`font-size:18px;filter:${i<s?'none':'grayscale(1) opacity(.3)'};transition:all .4s;${i<s?'animation:starPop .4s ease;':''}`;sr.appendChild(sp);}
+  document.getElementById('inputTip').textContent=g.mastery>=80?'🌟 太棒了！你已经学会啦！':'💪 继续努力！学会了 '+g.mastery+'%';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MASCOT
+// ═══════════════════════════════════════════════════════════════════
+function getMascotSVG(mood,size){
+  const M={idle:{e:'normal',m:'smile',b:'normal',c:'#FFB347'},thinking:{e:'squint',m:'hmm',b:'raised',c:'#4D96FF'},happy:{e:'happy',m:'bigsmile',b:'happy',c:'#6BCB77'},celebrate:{e:'star',m:'wow',b:'up',c:'#FFD93D'},encourage:{e:'kind',m:'smile',b:'kind',c:'#C77DFF'},speaking:{e:'normal',m:'open',b:'normal',c:'#FF6B6B'}};
+  const m=M[mood]||M.idle;let eyes='',brows='',mouth='';
+  if(m.e==='happy')eyes=`<path d="M52 62 Q58 56 64 62" stroke="#3D2C1E" stroke-width="3.5" stroke-linecap="round" fill="none"/><path d="M76 62 Q82 56 88 62" stroke="#3D2C1E" stroke-width="3.5" stroke-linecap="round" fill="none"/>`;
+  else if(m.e==='star')eyes=`<text x="52" y="70" font-size="16" text-anchor="middle">⭐</text><text x="88" y="70" font-size="16" text-anchor="middle">⭐</text>`;
+  else if(m.e==='squint')eyes=`<ellipse cx="58" cy="65" rx="8" ry="5" fill="#3D2C1E"/><ellipse cx="82" cy="65" rx="8" ry="5" fill="#3D2C1E"/>`;
+  else if(m.e==='kind')eyes=`<ellipse cx="58" cy="65" rx="8" ry="9" fill="#3D2C1E"/><ellipse cx="82" cy="65" rx="8" ry="9" fill="#3D2C1E"/><ellipse cx="60" cy="63" rx="3" ry="3" fill="white" opacity=".6"/><ellipse cx="84" cy="63" rx="3" ry="3" fill="white" opacity=".6"/>`;
+  else eyes=`<ellipse cx="58" cy="65" rx="9" ry="10" fill="#3D2C1E"/><ellipse cx="82" cy="65" rx="9" ry="10" fill="#3D2C1E"/><ellipse cx="61" cy="62" rx="3.5" ry="3.5" fill="white" opacity=".7"/><ellipse cx="85" cy="62" rx="3.5" ry="3.5" fill="white" opacity=".7"/>`;
+  if(m.b==='raised')brows=`<path d="M46 48 Q58 40 66 48" stroke="#3D2C1E" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M74 48 Q82 40 94 48" stroke="#3D2C1E" stroke-width="3" stroke-linecap="round" fill="none"/>`;
+  else if(m.b==='happy')brows=`<path d="M46 50 Q58 44 66 50" stroke="#3D2C1E" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M74 50 Q82 44 94 50" stroke="#3D2C1E" stroke-width="3" stroke-linecap="round" fill="none"/>`;
+  else if(m.b==='kind')brows=`<path d="M46 52 Q58 47 66 52" stroke="#3D2C1E" stroke-width="2.5" stroke-linecap="round" fill="none"/><path d="M74 52 Q82 47 94 52" stroke="#3D2C1E" stroke-width="2.5" stroke-linecap="round" fill="none"/>`;
+  else if(m.b==='up')brows=`<path d="M44 44 Q58 36 68 44" stroke="#3D2C1E" stroke-width="3.5" stroke-linecap="round" fill="none"/><path d="M72 44 Q82 36 96 44" stroke="#3D2C1E" stroke-width="3.5" stroke-linecap="round" fill="none"/>`;
+  if(m.m==='open'||m.m==='wow')mouth=`<ellipse cx="70" cy="86" rx="${m.m==='wow'?14:12}" ry="${m.m==='wow'?12:8}" fill="#E55555"/>`;
+  else if(m.m==='bigsmile')mouth=`<path d="M52 82 Q70 100 88 82" stroke="#E55555" stroke-width="4" stroke-linecap="round" fill="none"/>`;
+  else if(m.m==='hmm')mouth=`<path d="M58 85 Q70 82 82 85" stroke="#3D2C1E" stroke-width="3" stroke-linecap="round" fill="none"/>`;
+  else mouth=`<path d="M56 83 Q70 95 84 83" stroke="#E55555" stroke-width="3.5" stroke-linecap="round" fill="none"/>`;
+  const h=size*1.1;
+  return `<svg viewBox="0 0 140 154" width="${size}" height="${h}" style="display:block;"><ellipse cx="105" cy="130" rx="22" ry="14" fill="${m.c}" transform="rotate(-25 105 130)" opacity=".9"/><ellipse cx="105" cy="130" rx="14" ry="8" fill="white" transform="rotate(-25 105 130)" opacity=".7"/><ellipse cx="70" cy="118" rx="36" ry="28" fill="${m.c}"/><ellipse cx="70" cy="118" rx="22" ry="18" fill="white" opacity=".8"/><polygon points="28,50 18,10 48,38" fill="${m.c}"/><polygon points="30,46 22,18 44,38" fill="#FF6B6B" opacity=".6"/><polygon points="112,50 122,10 92,38" fill="${m.c}"/><polygon points="110,46 118,18 96,38" fill="#FF6B6B" opacity=".6"/><ellipse cx="70" cy="68" rx="44" ry="40" fill="${m.c}"/><ellipse cx="40" cy="78" rx="12" ry="8" fill="#FF6B6B" opacity=".35"/><ellipse cx="100" cy="78" rx="12" ry="8" fill="#FF6B6B" opacity=".35"/><ellipse cx="70" cy="73" rx="28" ry="25" fill="white" opacity=".75"/>${brows}${eyes}<ellipse cx="70" cy="78" rx="5" ry="3.5" fill="#E55555"/>${mouth}<ellipse cx="44" cy="144" rx="16" ry="10" fill="${m.c}"/><ellipse cx="96" cy="144" rx="16" ry="10" fill="${m.c}"/></svg>`;
+}
+let talkTimer=null;
+function setMascot(mood,bounce=false){
+  const el=document.getElementById('mascotEl');if(!el)return;
+  if(talkTimer){clearInterval(talkTimer);talkTimer=null;}
+  if(mood==='speaking'){
+    let open=false;
+    talkTimer=setInterval(()=>{
+      open=!open;
+      const m=open?'open':'smile';
+      const tmpMood={...{e:'normal',m,b:'normal',c:'#FF6B6B'}};
+      // Quick redraw with open/close mouth
+      el.innerHTML=getMascotSVG(open?'speaking':'idle',82);
+    },160);
+  } else { el.innerHTML=getMascotSVG(mood,82); }
+  el.className='mascot-anim'+(bounce?' bounce-anim':'');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CONFETTI
+// ═══════════════════════════════════════════════════════════════════
+function fireConfetti(){
+  const cols=['#FFD93D','#FF6B6B','#6BCB77','#4D96FF','#C77DFF','#FFB347'];
+  for(let i=0;i<26;i++){const d=document.createElement('div');d.className='confetti-p';const sz=6+Math.random()*8;d.style.cssText=`left:${10+Math.random()*80}%;top:-8%;width:${sz}px;height:${sz*(i%3===2?1:.5)}px;background:${cols[i%6]};border-radius:${i%3===0?'50%':'2px'};transform:rotate(${Math.random()*360}deg);animation-delay:${Math.random()*.4}s;`;document.body.appendChild(d);setTimeout(()=>d.remove(),2200);}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MESSAGES
+// ═══════════════════════════════════════════════════════════════════
+function setSend(on){document.getElementById('sendBtn').disabled=on;document.getElementById('micSm').disabled=on;document.getElementById('holdBtn').style.pointerEvents=on?'none':'auto';}
+function appendMsg(role,content,mood,replies,hint){
+  const list=document.getElementById('chatList');
+  const row=document.createElement('div');row.className='msg-row'+(role==='user'?' user':'');
+  if(role==='ai'){const ico=document.createElement('div');ico.className='msg-icon';ico.style.cssText=`background:${g.subj?.bg};border:2px solid ${g.subj?.color}55;`;ico.textContent=g.subj?.emoji;row.appendChild(ico);}
+  const cd=document.createElement('div');cd.className='msg-content';
+  if(role==='ai'&&hint){const hc=document.createElement('div');hc.className='hint-chip';hc.textContent='💡 '+hint;cd.appendChild(hc);}
+  const bub=document.createElement('div');bub.className='bub '+role;
+  if(role==='user')bub.style.background=`linear-gradient(135deg,${g.subj?.color},${g.subj?.color}CC)`;
+  else bub.style.border=`1.5px solid ${g.subj?.color}33`;
+  bub.textContent=content;cd.appendChild(bub);
+  if(role==='ai'&&replies&&replies.length){const qr=document.createElement('div');qr.className='quick-replies';replies.forEach(r=>{const b=document.createElement('button');b.className='quick-btn';b.style.cssText=`border-color:${g.subj?.color}55;color:${g.subj?.color};`;b.textContent=r;b.onclick=()=>sendTxt(r);qr.appendChild(b);});cd.appendChild(qr);}
+  row.appendChild(cd);list.appendChild(row);list.scrollTop=list.scrollHeight;
+}
+function showTyping(){
+  const list=document.getElementById('chatList');const row=document.createElement('div');row.className='typing-row';row.id='typingRow';
+  const ico=document.createElement('div');ico.className='msg-icon';ico.style.cssText=`background:${g.subj?.bg};border:2px solid ${g.subj?.color}55;`;ico.textContent=g.subj?.emoji;
+  const bub=document.createElement('div');bub.className='typing-bubble';
+  for(let i=0;i<3;i++){const d=document.createElement('div');d.className='typing-dot';d.style.cssText=`background:${g.subj?.color};animation-delay:${i*.2}s;`;bub.appendChild(d);}
+  row.appendChild(ico);row.appendChild(bub);list.appendChild(row);list.scrollTop=list.scrollHeight;
+}
+function hideTyping(){const r=document.getElementById('typingRow');if(r)r.remove();}
+
+// ═══════════════════════════════════════════════════════════════════
+// SEND
+// ═══════════════════════════════════════════════════════════════════
+function sendTxt(txt){if(!txt.trim())return;appendMsg('user',txt,'','','');callAI(txt,g.hist);document.getElementById('partialEl').style.display='none';}
+function doSend(){const t=document.getElementById('chatTa').value.trim();if(!t)return;document.getElementById('chatTa').value='';document.getElementById('sendBtn').disabled=true;resizeTa();sendTxt(t);}
+function onTaInput(){document.getElementById('sendBtn').disabled=!document.getElementById('chatTa').value.trim();resizeTa();}
+function onTaKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doSend();}}
+function resizeTa(){const t=document.getElementById('chatTa');t.style.height='42px';t.style.height=Math.min(t.scrollHeight,96)+'px';}
+
+// ═══════════════════════════════════════════════════════════════════
+// INPUT MODE
+// ═══════════════════════════════════════════════════════════════════
+function setMode(mode){
+  g.mode=mode;
+  const sc=g.subj?.color||'#FF6B6B';
+  document.getElementById('textRow').style.display=mode==='text'?'flex':'none';
+  document.getElementById('voiceRow').style.display=mode==='voice'?'flex':'none';
+  ['btnText','btnVoice'].forEach(id=>{const a=(id==='btnText'&&mode==='text')||(id==='btnVoice'&&mode==='voice');const b=document.getElementById(id);b.style.background=a?sc:'white';b.style.borderColor=a?sc:'#E8D8C8';b.style.color=a?'white':'#7A5C44';});
+  document.getElementById('holdBtn').style.borderColor=sc+'66';
+  document.getElementById('holdBtn').style.boxShadow=`0 4px 18px ${sc}44`;
+  document.getElementById('holdLbl').style.color=sc;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TTS (Android native bridge OR web fallback)
+// ═══════════════════════════════════════════════════════════════════
+function doTTS(txt){
+  if(!txt)return;
+  const lang=g.subj?.id==='english'?'en-US':'zh-CN';
+  if(window.AndroidTutor){window.AndroidTutor.speak(txt,lang);return;}
+  if(!syn)return;
+  syn.cancel();const u=new SpeechSynthesisUtterance(txt);u.lang=lang;u.rate=.88;u.pitch=1.2;
+  u.onstart=()=>{setMascot('speaking');document.getElementById('ttsBar').style.display='flex';};
+  u.onend=()=>{setMascot('idle');document.getElementById('ttsBar').style.display='none';};
+  u.onerror=()=>{setMascot('idle');document.getElementById('ttsBar').style.display='none';};
+  syn.speak(u);
+}
+function stopTTS(){if(window.AndroidTutor)window.AndroidTutor.stopSpeak();else syn?.cancel();setMascot('idle');document.getElementById('ttsBar').style.display='none';}
+window.onTtsStarted=()=>{setMascot('speaking');document.getElementById('ttsBar').style.display='flex';};
+window.onTtsStopped=()=>{setMascot('idle');document.getElementById('ttsBar').style.display='none';};
+window.onTtsReady=()=>{};
+
+// ═══════════════════════════════════════════════════════════════════
+// STT (Android native bridge OR web fallback)
+// ═══════════════════════════════════════════════════════════════════
+function startListen(){
+  const lang=g.subj?.id==='english'?'en-US':'zh-CN';
+  if(window.AndroidTutor){window.AndroidTutor.startListening(lang);return;}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return;
+  rec=new SR();rec.lang=lang;rec.continuous=false;rec.interimResults=true;
+  rec.onresult=e=>{const t=Array.from(e.results).map(r=>r[0].transcript).join('');document.getElementById('partialEl').textContent='🎤 '+t;document.getElementById('partialEl').style.display='block';document.getElementById('chatTa').value=t;document.getElementById('sendBtn').disabled=!t.trim();};
+  rec.onend=()=>{g.listening=false;updListenUI(false);};
+  rec.onerror=()=>{g.listening=false;updListenUI(false);};
+  rec.start();g.listening=true;updListenUI(true);
+}
+function stopListen(){if(window.AndroidTutor)window.AndroidTutor.stopListening();else rec?.stop();g.listening=false;updListenUI(false);}
+function updListenUI(on){
+  document.getElementById('recBar').style.display=on?'flex':'none';
+  const ms=document.getElementById('micSm');if(on)ms.classList.add('recording');else ms.classList.remove('recording');
+  const hb=document.getElementById('holdBtn');
+  hb.classList.toggle('pressing',on);
+  document.getElementById('holdIco').textContent=on?'🔴':'🎙';
+  document.getElementById('holdLbl').textContent=on?'松手发送':'按住 说话';
+  if(on){const bars=document.querySelectorAll('.vol-bar');const pat=[.3,.6,1,.8,1,.6,.5,.8,.4];let vi=setInterval(()=>{if(!g.listening&&!g.holdA){clearInterval(vi);bars.forEach(b=>b.style.height='5px');return;}const v=Math.random()*100;bars.forEach((b,i)=>b.style.height=Math.max(5,(v/100)*32*pat[i])+'px');},90);}
+}
+function onSmMicRelease(e){e.preventDefault();g.listening?stopListen():startListen();}
+function onHoldS(e){e.preventDefault();g.holdA=true;stopTTS();startListen();}
+function onHoldE(e){e.preventDefault();if(!g.holdA)return;g.holdA=false;stopListen();}
+window.onSpeechReady=()=>updListenUI(true);
+window.onSpeechStart=()=>updListenUI(true);
+window.onSpeechPartial=t=>{document.getElementById('partialEl').textContent='🎤 '+t;document.getElementById('partialEl').style.display='block';document.getElementById('chatTa').value=t;document.getElementById('sendBtn').disabled=!t.trim();};
+window.onSpeechResult=t=>{g.listening=false;g.holdA=false;document.getElementById('partialEl').style.display='none';updListenUI(false);if(!t.trim())return;if(g.mode==='voice')sendTxt(t);else{document.getElementById('chatTa').value=t;document.getElementById('sendBtn').disabled=false;}};
+window.onSpeechVolume=v=>{const bars=document.querySelectorAll('.vol-bar');const pat=[.3,.6,1,.8,1,.6,.5,.8,.4];bars.forEach((b,i)=>b.style.height=Math.max(5,(parseInt(v)/100)*32*pat[i])+'px');};
+window.onSpeechError=msg=>{g.listening=false;g.holdA=false;updListenUI(false);document.getElementById('partialEl').style.display='none';showToast(msg||'没听清楚，再试试！');};
+window.onPermissionGranted=()=>{if(g.holdA)startListen();};
+
+// ═══════════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════════
+function showToast(msg){let t=document.getElementById('_t');if(!t){t=document.createElement('div');t.id='_t';t.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(61,44,30,.88);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;z-index:9999;pointer-events:none;transition:opacity .3s;max-width:80%;text-align:center;';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';setTimeout(()=>t.style.opacity='0',2800);}
+</script>
+</body>
+</html>
