@@ -25,7 +25,6 @@ jobs:
 
       - name: Build debug APK
         run: |
-          cd kids-tutor-android
           chmod +x gradlew
           ./gradlew assembleDebug
 
@@ -33,4 +32,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kids-tutor-debug
-          path: kids-tutor-android/app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
